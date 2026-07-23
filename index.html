@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#eef1fb;
+  --surface:#fff;
+  --border:#e2e8f0;
+  --text:#1e293b;
+  --muted:#64748b;
+  --primary:#4f46e5;
+  --primary-h:#4338ca;
+  --primary-light:#eef2ff;
+  --high:#dc2626;
+  --medium:#d97706;
+  --low:#16a34a;
+  --r:12px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --sh-md:0 4px 12px rgba(0,0,0,.1);
+}
+
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ─── Header ─── */
+header{
+  position:sticky;top:0;z-index:100;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  height:60px;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 1px 4px rgba(0,0,0,.06)
+}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--primary);text-decoration:none}
+.logo svg{width:30px;height:30px;flex-shrink:0}
+
+.header-right{display:flex;align-items:center;gap:12px}
+
+.stats-row{display:flex;gap:6px}
+.stat-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.stat-pill.s-todo{background:#f1f5f9;color:#475569}
+.stat-pill.s-prog{background:#dbeafe;color:#1d4ed8}
+.stat-pill.s-done{background:#dcfce7;color:#15803d}
+.stat-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+.btn-add{
+  display:flex;align-items:center;gap:6px;
+  background:var(--primary);color:#fff;
+  border:none;padding:8px 16px;border-radius:8px;
+  font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;transition:background .15s;white-space:nowrap
+}
+.btn-add:hover{background:var(--primary-h)}
+.btn-add svg{width:14px;height:14px}
+
+/* ─── Toolbar ─── */
+.toolbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:52px;
+  display:flex;align-items:center;gap:12px
+}
+
+.tabs{display:flex;gap:2px;background:#f1f5f9;border-radius:8px;padding:3px}
+.tab{
+  padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;
+  cursor:pointer;border:none;background:transparent;color:var(--muted);
+  font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap
+}
+.tab.active{background:#fff;color:var(--text);box-shadow:var(--sh)}
+
+.sep{width:1px;height:22px;background:var(--border)}
+
+.cat-select{
+  padding:6px 10px;border:1px solid var(--border);border-radius:8px;
+  font-family:'Inter',sans-serif;font-size:13px;color:var(--text);
+  background:#fff;cursor:pointer;outline:none
+}
+
+.progress-wrap{margin-left:auto;display:flex;align-items:center;gap:10px}
+.progress-bar{width:120px;height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:var(--primary);border-radius:99px;transition:width .4s ease}
+.progress-label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+
+/* ─── Board ─── */
+.board{
+  padding:20px 24px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  align-items:start
+}
+
+.column{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden
+}
+
+.col-head{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px
+}
+.col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.col-name{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;flex:1}
+.col-badge{
+  background:#f1f5f9;color:var(--muted);
+  padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700
+}
+
+.col-todo .col-dot{background:#94a3b8}
+.col-todo .col-name{color:#475569}
+.col-prog .col-dot{background:#3b82f6}
+.col-prog .col-name{color:#2563eb}
+.col-done .col-dot{background:#22c55e}
+.col-done .col-name{color:#16a34a}
+
+.col-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:140px}
+
+.empty-msg{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:36px 16px;color:var(--muted);font-size:13px;opacity:.5;text-align:center
+}
+.empty-msg svg{opacity:.4}
+
+/* ─── Card ─── */
+.card{
+  background:#f8fafc;border:1px solid var(--border);
+  border-left:3px solid #cbd5e1;
+  border-radius:10px;padding:13px;cursor:pointer;
+  transition:all .15s;
+}
+.card:hover{
+  background:#fff;border-color:#c7d2fe;border-left-color:var(--lc,#4f46e5);
+  box-shadow:var(--sh-md);transform:translateY(-1px)
+}
+.card.p-high{--lc:var(--high);border-left-color:var(--high)}
+.card.p-medium{--lc:var(--medium);border-left-color:var(--medium)}
+.card.p-low{--lc:var(--low);border-left-color:var(--low)}
+
+.card-title{
+  font-size:14px;font-weight:500;color:var(--text);
+  line-height:1.45;margin-bottom:8px
+}
+.is-done .card-title{text-decoration:line-through;color:var(--muted)}
+
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cat-tag{
+  padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;
+  background:var(--primary-light);color:var(--primary)
+}
+.pri-tag{
+  padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.4px
+}
+.pri-tag.p-high{background:#fef2f2;color:var(--high)}
+.pri-tag.p-medium{background:#fffbeb;color:var(--medium)}
+.pri-tag.p-low{background:#f0fdf4;color:var(--low)}
+
+.due{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+.due.overdue{color:var(--high);font-weight:600}
+
+.card-desc{
+  font-size:12px;color:var(--muted);line-height:1.5;
+  margin-top:7px;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden
+}
+
+.card-btns{
+  display:flex;gap:5px;margin-top:10px;padding-top:9px;
+  border-top:1px solid var(--border)
+}
+.cbtn{
+  flex:1;padding:4px 6px;border-radius:6px;font-size:11px;font-weight:500;
+  cursor:pointer;border:1px solid var(--border);background:#fff;
+  color:var(--muted);font-family:'Inter',sans-serif;
+  transition:all .15s;text-align:center
+}
+.cbtn:hover{background:#f1f5f9;color:var(--text);border-color:#c7d2fe}
+.cbtn.primary{background:var(--primary-light);border-color:#c7d2fe;color:var(--primary)}
+.cbtn.primary:hover{background:var(--primary);color:#fff}
+.cbtn.del:hover{background:#fef2f2;border-color:#fca5a5;color:var(--high)}
+
+/* ─── Modal ─── */
+.overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.55);
+  backdrop-filter:blur(3px);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s
+}
+.overlay.open{opacity:1;visibility:visible}
+
+.modal{
+  background:#fff;border-radius:18px;width:100%;max-width:520px;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);
+  transform:scale(.96) translateY(12px);transition:transform .2s;
+  overflow:hidden
+}
+.overlay.open .modal{transform:scale(1) translateY(0)}
+
+.modal-head{
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between
+}
+.modal-head h2{font-size:16px;font-weight:700}
+.btn-x{
+  width:30px;height:30px;border-radius:8px;border:none;
+  background:#f1f5f9;color:var(--muted);font-size:18px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s
+}
+.btn-x:hover{background:#e2e8f0;color:var(--text)}
+
+.modal-body{padding:22px 24px;display:flex;flex-direction:column;gap:15px}
+
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:12px;font-weight:600;color:var(--text);letter-spacing:.2px}
+.fg input,.fg select,.fg textarea{
+  padding:9px 12px;border:1px solid var(--border);border-radius:8px;
+  font-family:'Inter',sans-serif;font-size:14px;color:var(--text);
+  background:#fff;outline:none;transition:border-color .15s,box-shadow .15s
+}
+.fg input:focus,.fg select:focus,.fg textarea:focus{
+  border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)
+}
+.fg textarea{resize:vertical;min-height:72px}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.modal-foot{
+  padding:16px 24px;border-top:1px solid var(--border);
+  display:flex;gap:8px;justify-content:flex-end
+}
+.btn{
+  padding:9px 18px;border-radius:8px;font-family:'Inter',sans-serif;
+  font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s
+}
+.btn-sec{background:#f1f5f9;color:var(--text)}
+.btn-sec:hover{background:#e2e8f0}
+.btn-pri{background:var(--primary);color:#fff}
+.btn-pri:hover{background:var(--primary-h)}
+
+/* ─── Responsive ─── */
+@media(max-width:900px){
+  .board{grid-template-columns:1fr}
+  .stats-row{display:none}
+  .progress-wrap{display:none}
+}
+@media(max-width:600px){
+  header{padding:0 16px}
+  .toolbar{padding:0 16px}
+  .board{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="8" fill="#4f46e5" opacity=".12"/>
+      <rect x="6" y="9" width="14" height="2" rx="1" fill="#4f46e5"/>
+      <rect x="6" y="15" width="20" height="2" rx="1" fill="#4f46e5"/>
+      <rect x="6" y="21" width="10" height="2" rx="1" fill="#4f46e5"/>
+      <circle cx="25" cy="21" r="5" fill="#4f46e5"/>
+      <path d="M22.5 21l1.5 1.5 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Tracker
+  </div>
+  <div class="header-right">
+    <div class="stats-row" id="statsRow">
+      <div class="stat-pill s-todo"><div class="dot"></div><span id="sTodo">0</span> Todo</div>
+      <div class="stat-pill s-prog"><div class="dot"></div><span id="sProg">0</span> In Progress</div>
+      <div class="stat-pill s-done"><div class="dot"></div><span id="sDone">0</span> Done</div>
+    </div>
+    <button class="btn-add" onclick="openAdd()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Item
+    </button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="tabs">
+    <button class="tab active" data-f="all" onclick="setFilter('all',this)">All</button>
+    <button class="tab" data-f="todo" onclick="setFilter('todo',this)">To Do</button>
+    <button class="tab" data-f="in-progress" onclick="setFilter('in-progress',this)">In Progress</button>
+    <button class="tab" data-f="done" onclick="setFilter('done',this)">Done</button>
+  </div>
+  <div class="sep"></div>
+  <select class="cat-select" id="catFilter" onchange="loadItems()">
+    <option value="">All Categories</option>
+  </select>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    <span class="progress-label" id="progLabel">0%</span>
+  </div>
+</div>
+
+<div class="board">
+  <div class="column col-todo">
+    <div class="col-head">
+      <div class="col-dot"></div>
+      <span class="col-name">To Do</span>
+      <span class="col-badge" id="cntTodo">0</span>
+    </div>
+    <div class="col-body" id="colTodo"></div>
+  </div>
+  <div class="column col-prog">
+    <div class="col-head">
+      <div class="col-dot"></div>
+      <span class="col-name">In Progress</span>
+      <span class="col-badge" id="cntProg">0</span>
+    </div>
+    <div class="col-body" id="colProg"></div>
+  </div>
+  <div class="column col-done">
+    <div class="col-head">
+      <div class="col-dot"></div>
+      <span class="col-name">Done</span>
+      <span class="col-badge" id="cntDone">0</span>
+    </div>
+    <div class="col-body" id="colDone"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="mTitle">Add Item</h2>
+      <button class="btn-x" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Title <span style="color:var(--high)">*</span></label>
+        <input id="fTitle" type="text" placeholder="What needs to be done?" />
+      </div>
+      <div class="fg">
+        <label>Description</label>
+        <textarea id="fDesc" placeholder="Add more details…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label>Category</label>
+          <input id="fCat" type="text" placeholder="e.g. Work, Health…" list="catSugg"/>
+          <datalist id="catSugg">
+            <option value="Work">
+            <option value="Personal">
+            <option value="Health">
+            <option value="Learning">
+            <option value="Finance">
+            <option value="Other">
+          </datalist>
+        </div>
+        <div class="fg">
+          <label>Priority</label>
+          <select id="fPri">
+            <option value="low">🟢 Low</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label>Status</label>
+          <select id="fStatus">
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Due Date</label>
+          <input id="fDue" type="date" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-pri" onclick="save()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'tracker_v1';
+const today = new Date().toISOString().slice(0, 10);
+
+let all = [];
+let nextId = 1;
+let filter = 'all';
+let editId = null;
+
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: all, nextId }));
+}
+
+function seed() {
+  const ts = new Date().toISOString();
+  all = [
+    { id:1, title:'Set up project roadmap',  description:'Define milestones and deliverables for Q3', category:'Work',     status:'todo',        priority:'high',   due_date:null, created_at:ts },
+    { id:2, title:'Weekly team standup',      description:'Prepare agenda and action items',           category:'Work',     status:'in-progress', priority:'medium', due_date:null, created_at:ts },
+    { id:3, title:'Read Atomic Habits',       description:'Focus on chapters 3–5 this week',          category:'Learning', status:'in-progress', priority:'low',    due_date:null, created_at:ts },
+    { id:4, title:'Monthly budget review',    description:'Track expenses and savings goals',          category:'Finance',  status:'todo',        priority:'high',   due_date:null, created_at:ts },
+    { id:5, title:'Gym session',              description:'3x per week — legs, push, pull split',     category:'Health',   status:'done',        priority:'medium', due_date:null, created_at:ts },
+    { id:6, title:'Update portfolio site',    description:'Add recent projects and refresh bio',      category:'Personal', status:'done',        priority:'low',    due_date:null, created_at:ts },
+  ];
+  nextId = 7;
+  persist();
+}
+
+function init() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      all = data.items || [];
+      nextId = data.nextId || (all.reduce((m, i) => Math.max(m, i.id), 0) + 1);
+    } else {
+      seed();
+    }
+  } catch { seed(); }
+}
+
+function loadItems() {
+  const cat = document.getElementById('catFilter').value;
+  const visible = cat ? all.filter(i => i.category === cat) : all.slice();
+  render(visible);
+  updateStats();
+}
+
+function updateStats() {
+  const todo  = all.filter(i => i.status === 'todo').length;
+  const prog  = all.filter(i => i.status === 'in-progress').length;
+  const done  = all.filter(i => i.status === 'done').length;
+  const total = all.length;
+
+  document.getElementById('sTodo').textContent = todo;
+  document.getElementById('sProg').textContent = prog;
+  document.getElementById('sDone').textContent = done;
+
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progLabel').textContent = `${done}/${total} done`;
+
+  const cf  = document.getElementById('catFilter');
+  const cur = cf.value;
+  const cats = [...new Set(all.map(i => i.category).filter(Boolean))].sort();
+  cf.innerHTML = '<option value="">All Categories</option>';
+  cats.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    if (c === cur) o.selected = true;
+    cf.appendChild(o);
+  });
+}
+
+function render(items) {
+  const shown = filter === 'all' ? items : items.filter(i => i.status === filter);
+  const todo  = shown.filter(i => i.status === 'todo');
+  const prog  = shown.filter(i => i.status === 'in-progress');
+  const done  = shown.filter(i => i.status === 'done');
+
+  document.getElementById('cntTodo').textContent = todo.length;
+  document.getElementById('cntProg').textContent = prog.length;
+  document.getElementById('cntDone').textContent = done.length;
+
+  renderCol('colTodo', todo, false);
+  renderCol('colProg', prog, false);
+  renderCol('colDone', done, true);
+}
+
+function renderCol(id, items, isDone) {
+  const el = document.getElementById(id);
+  if (!items.length) {
+    el.innerHTML = `<div class="empty-msg">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+      </svg>
+      Nothing here
+    </div>`;
+    return;
+  }
+  el.innerHTML = items.map(item => {
+    const overdue = item.due_date && item.due_date < today && item.status !== 'done';
+    const dueStr  = item.due_date
+      ? `<span class="due ${overdue ? 'overdue' : ''}">${overdue ? '⚠ ' : ''}${fmtDate(item.due_date)}</span>`
+      : '';
+    const descStr  = item.description ? `<div class="card-desc">${esc(item.description)}</div>` : '';
+    const btnBack  = item.status !== 'todo'        ? `<button class="cbtn" onclick="mv(event,${item.id},'todo')">← Todo</button>` : '';
+    const btnStart = item.status !== 'in-progress' ? `<button class="cbtn ${item.status==='todo'?'primary':''}" onclick="mv(event,${item.id},'in-progress')">▶ Start</button>` : '';
+    const btnDone  = item.status !== 'done'        ? `<button class="cbtn ${item.status==='in-progress'?'primary':''}" onclick="mv(event,${item.id},'done')">✓ Done</button>` : '';
+
+    return `<div class="card p-${item.priority} ${isDone?'is-done':''}" onclick="openEdit(${item.id})">
+      <div class="card-title">${esc(item.title)}</div>
+      <div class="card-meta">
+        ${item.category ? `<span class="cat-tag">${esc(item.category)}</span>` : ''}
+        <span class="pri-tag p-${item.priority}">${item.priority}</span>
+        ${dueStr}
+      </div>
+      ${descStr}
+      <div class="card-btns" onclick="event.stopPropagation()">
+        ${btnBack}${btnStart}${btnDone}
+        <button class="cbtn del" onclick="del(event,${item.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fmtDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadItems();
+}
+
+function openAdd() {
+  editId = null;
+  document.getElementById('mTitle').textContent = 'Add Item';
+  document.getElementById('fTitle').value   = '';
+  document.getElementById('fDesc').value    = '';
+  document.getElementById('fCat').value     = '';
+  document.getElementById('fPri').value     = 'medium';
+  document.getElementById('fStatus').value  = 'todo';
+  document.getElementById('fDue').value     = '';
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('fTitle').focus(), 80);
+}
+
+function openEdit(id) {
+  const item = all.find(i => i.id === id);
+  if (!item) return;
+  editId = id;
+  document.getElementById('mTitle').textContent  = 'Edit Item';
+  document.getElementById('fTitle').value   = item.title;
+  document.getElementById('fDesc').value    = item.description || '';
+  document.getElementById('fCat').value     = item.category    || '';
+  document.getElementById('fPri').value     = item.priority    || 'medium';
+  document.getElementById('fStatus').value  = item.status      || 'todo';
+  document.getElementById('fDue').value     = item.due_date    || '';
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('fTitle').focus(), 80);
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+function save() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { document.getElementById('fTitle').focus(); return; }
+  const payload = {
+    title,
+    description: document.getElementById('fDesc').value.trim(),
+    category:    document.getElementById('fCat').value.trim() || 'General',
+    priority:    document.getElementById('fPri').value,
+    status:      document.getElementById('fStatus').value,
+    due_date:    document.getElementById('fDue').value || null,
+  };
+
+  if (editId !== null) {
+    const idx = all.findIndex(i => i.id === editId);
+    if (idx !== -1) all[idx] = { ...all[idx], ...payload };
+  } else {
+    all.unshift({ id: nextId++, ...payload, created_at: new Date().toISOString() });
+  }
+
+  persist();
+  closeModal();
+  loadItems();
+}
+
+function mv(e, id, status) {
+  e.stopPropagation();
+  const item = all.find(i => i.id === id);
+  if (!item) return;
+  item.status = status;
+  persist();
+  loadItems();
+}
+
+function del(e, id) {
+  e.stopPropagation();
+  if (!confirm('Delete this item?')) return;
+  all = all.filter(i => i.id !== id);
+  persist();
+  loadItems();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if (document.getElementById('overlay').classList.contains('open')) save();
+  }
+});
+
+init();
+loadItems();
+</script>
+</body>
+</html>
